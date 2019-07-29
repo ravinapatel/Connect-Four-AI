@@ -9,7 +9,7 @@ from constants import *
 from tkinter import Tk, Canvas, Frame, Label, BOTH
 from connect_four import Board, Game, Chip
 import connect_four_ai as ai
-from time import sleep
+import time
 
 class Window:
 
@@ -21,10 +21,9 @@ class Window:
 
         self.g = Game()
         self.b = Board()
-        self.b.pretty_print()
         self.chip = None
 
-        # Draw Control Panel
+        # Draw Upper Control Panel
         self.control = Frame(self.root, width=WIDTH, height=CONTROL_HEIGHT, bg=BACKGROUND_COLOR)
         self.control.pack(fill=tk.BOTH, expand=tk.YES)
         self.slide = Canvas(self.control, width = WIDTH, height = CHIP_PADDING*2 + CHIP_DIAMETER, bg = BACKGROUND_COLOR)
@@ -35,13 +34,12 @@ class Window:
         self.canvas.bind("<Button-1>", self.drop_chip)
         self.clear_board()
         self.canvas.pack()
-        print('Turn:',self.g.turn)
 
         self.update()       # Constantly checks pointer position to move chip slider
 
         self.root.mainloop()
 
-    # Clears all chips from the visual board
+    # Clears all chips from the visual board display
     def clear_board(self):
         for row in range(self.size[0]):
             for col in range (self.size[1]):
@@ -62,37 +60,28 @@ class Window:
 
     # Resets everything for a new game
     def new_game(self, event):
-        print('resetting')
         self.state='waiting'
         self.root.unbind('<Return>')
-        self.b = Board()
-        self.g = Game()
         self.canvas.delete(self.tint)
         self.canvas.delete(self.text1)
         self.canvas.delete(self.text2)
+        self.canvas.delete(self.line)
         self.clear_board()
+        self.b = Board()
+        self.c = Board()
+        self.g = Game()
         self.update()
 
     # Adds a chip to the correct column of the matrix
     def drop_chip(self, event):
         if not self.b.gameover:
-            col_width = (WIDTH-PADDING_X+CHIP_PADDING/2)/7
-            col = int(self.x//col_width)
+            col_width = (WIDTH-PADDING_X*2)/dim[1]
+            col = int((self.x-PADDING_X)//col_width)
             if self.b.chips[0][col] == 0:
                 self.state == 'dropping'
                 chip = self.g.create_chip()
                 chip.drop_chip(self.b, col)
                 self.draw_chip(chip,chip.pos[0],col)
-
-
-    # Adds a chip to the column of the matrix determined by ai
-    def cpu_drop_chip(self):
-        if not self.b.gameover:
-            col = ai.aggressiveBot(self.b)
-            self.state == 'dropping'
-            chip = self.g.create_chip()
-            chip.drop_chip(self.b, col)
-            self.draw_chip(chip,chip.pos[0],col)
 
     # Draws a chip on the visual board
     def draw_chip(self,chip,row,col):
@@ -100,24 +89,67 @@ class Window:
         u=PADDING_Y+(CHIP_DIAMETER+CHIP_PADDING)*row
         r=PADDING_X+(CHIP_DIAMETER+CHIP_PADDING)*col+CHIP_DIAMETER
         d=PADDING_Y+(CHIP_DIAMETER+CHIP_PADDING)*row + CHIP_DIAMETER
+        # for row in range(row):
+            # self.canvas.create_oval(l,u,r,d,fill=chip.color)
+            # time.sleep(0.2)
+            # self.canvas.create_oval(l,u,r,d,fill=BACKGROUND_COLOR)
         self.canvas.create_oval(l,u,r,d,fill=chip.color)
-        self.b.check()
+        self.turn()
+
+    # Checks if game is over and starts the next move
+    def turn(self):
+        check = self.b.check()
         if self.b.gameover == True:      # New Game
             self.state = 'gameover'
-            self.gameover()
+            self.gameover(check)
         else:
             self.g.turn += 1
             if self.g.turn == 43:
                 self.state = 'gameover'
                 self.gameover()
-            print('Turn:',self.g.turn)
             if self.cpu:
                 if self.g.turn%2 == 0:
                     self.cpu_drop_chip()
 
 
-    def gameover(self):
-        print('gameover')
+    # Adds a chip to the column of the matrix determined by ai
+    def cpu_drop_chip(self):
+        if not self.b.gameover:
+            col = ai.minimax(self.g,self.b,4,True)[0]
+            self.state == 'dropping'
+            chip = self.g.create_chip()
+            chip.drop_chip(self.b, col)
+            self.draw_chip(chip,chip.pos[0],col)
+
+    # Draws a line through a 4-in-a-row
+    def draw_line(self, direction, pos):
+        row1 = pos[0]
+        col1 = pos[1]
+        row2 = pos[2]
+        col2 = pos[3]
+        x1 = PADDING_X+(CHIP_DIAMETER+CHIP_PADDING)*col1
+        y1 = PADDING_Y+(CHIP_DIAMETER+CHIP_PADDING)*row1
+        x2 = PADDING_X+(CHIP_DIAMETER+CHIP_PADDING)*col2 + CHIP_DIAMETER
+        y2 = PADDING_Y+(CHIP_DIAMETER+CHIP_PADDING)*row2 + CHIP_DIAMETER
+
+        if direction == 'h':
+            x1 -= CHIP_PADDING/2
+            y1 += CHIP_DIAMETER/2
+            x2 += CHIP_PADDING/2
+            y2 -= CHIP_DIAMETER/2
+        elif direction == 'v':
+            x1 += CHIP_DIAMETER/2
+            y1 += CHIP_DIAMETER + CHIP_PADDING/2
+            x2 -= CHIP_DIAMETER/2
+            y2 -= CHIP_DIAMETER + CHIP_PADDING/2
+        elif direction == 'p':
+            y1 += CHIP_DIAMETER
+            y2 -= CHIP_DIAMETER
+
+        self.line = self.canvas.create_line(x1, y1, x2, y2, fill=LINE_COLOR)
+
+    def gameover(self,check):
+        self.draw_line(check[0],check[1])
         self.tint = self.canvas.create_rectangle(0,0,WIDTH,HEIGHT,fill="white", stipple='gray50')
         self.text1 = self.canvas.create_text(WIDTH/2,HEIGHT/2-30,text='Game Over',font=('Helvetica', 50, 'bold'),fill='black')
         self.text2 = self.canvas.create_text(WIDTH/2,HEIGHT/2+30,text='Press ENTER to play again',font=('Helvetica', 25, 'bold'),fill='black')
