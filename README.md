@@ -10,6 +10,9 @@ The aim for this project was to
 ### Minimax
 This AI simulates all possible moves for a certain depth of turns and assigns each potential board a score. Using the minimax algorithm, it then chooses the best move. I have found that a depth of 4 plays quickly, while beating human players pretty consistently. A depth of 3 is a decent player and a depth of 5 takes quite long to play.
 
+
+![minimax-gif](https://user-images.githubusercontent.com/48966108/63031821-ad0f5580-be82-11e9-9363-43fee263ec0a.gif)
+
 ### Aggressive
 This AI uses heuristics to determine the next move. It searches for 3-in-a-rows from either player. If the fourth spot is empty and playable, the AI completes the move, effectively winning the game or blocking the opponent's winning move. Though the process is pretty rudimentary right now, it is able to occasionally beat humans due to human error.
 
